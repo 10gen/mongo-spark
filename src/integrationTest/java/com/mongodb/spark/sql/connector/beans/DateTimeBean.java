@@ -21,6 +21,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 public class DateTimeBean implements Serializable {
@@ -28,6 +29,7 @@ public class DateTimeBean implements Serializable {
   private java.sql.Timestamp sqlTimestamp;
   private java.time.LocalDate localDate;
   private java.time.Instant instant;
+  private java.time.LocalDateTime localDateTime;
 
   public DateTimeBean() {}
 
@@ -35,10 +37,13 @@ public class DateTimeBean implements Serializable {
       final Date sqlDate,
       final Timestamp sqlTimestamp,
       final LocalDate localDate,
-      final Instant instant) {
+      final Instant instant,
+      final LocalDateTime localDateTime
+  ) {
     this.sqlDate = sqlDate;
     this.sqlTimestamp = sqlTimestamp;
     this.localDate = localDate;
+    this.localDateTime = localDateTime;
     this.instant = instant;
   }
 
@@ -66,6 +71,14 @@ public class DateTimeBean implements Serializable {
     this.localDate = localDate;
   }
 
+  public LocalDateTime getLocalDateTime() {
+    return localDateTime;
+  }
+
+  public void setLocalDateTime(final LocalDateTime localDateTime) {
+    this.localDateTime = localDateTime;
+  }
+
   public Instant getInstant() {
     return instant;
   }
@@ -76,30 +89,39 @@ public class DateTimeBean implements Serializable {
 
   @Override
   public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
     DateTimeBean that = (DateTimeBean) o;
     return Objects.equals(sqlDate, that.sqlDate)
         && Objects.equals(sqlTimestamp, that.sqlTimestamp)
         && Objects.equals(localDate, that.localDate)
+        && Objects.equals(localDateTime, that.localDateTime)
         && Objects.equals(instant, that.instant);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(sqlDate, sqlTimestamp, localDate, instant);
+    return Objects.hash(
+        sqlDate,
+        sqlTimestamp,
+        localDate,
+        localDateTime,
+        instant);
   }
 
   @Override
   public String toString() {
-    return "DateTimeBean{" + "sqlDate="
-        + sqlDate + ", sqlTimestamp="
-        + sqlTimestamp + ", localDate="
-        + localDate + ", instant="
-        + instant + '}';
+    return "DateTimeBean{"
+        + "sqlDate="
+        + sqlDate
+        + ", sqlTimestamp="
+        + sqlTimestamp
+        + ", localDate="
+        + localDate
+        + ", localDateTime="
+        + localDateTime
+        + ", instant="
+        + instant
+        + '}';
   }
 }

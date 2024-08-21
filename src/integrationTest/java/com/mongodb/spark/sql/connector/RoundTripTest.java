@@ -17,6 +17,7 @@
 
 package com.mongodb.spark.sql.connector;
 
+import static java.time.ZoneOffset.UTC;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
@@ -30,7 +31,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,8 @@ import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class RoundTripTest extends MongoSparkConnectorTestCase {
 
@@ -92,37 +95,45 @@ public class RoundTripTest extends MongoSparkConnectorTestCase {
     assertIterableEquals(dataSetOriginal, dataSetMongo);
   }
 
-  @Test
-  void testDateTimeBean() {
+  @ParameterizedTest()
+  @ValueSource(strings = {"true", "false"})
+  void testDateTimeBean(String java8DateTimeAPI) {
     TimeZone original = TimeZone.getDefault();
     try {
-      TimeZone.setDefault(TimeZone.getTimeZone(ZoneOffset.UTC));
+      TimeZone.setDefault(TimeZone.getTimeZone(UTC));
 
       // Given
       long oneHour = TimeUnit.MILLISECONDS.convert(1, TimeUnit.HOURS);
       long oneDay = oneHour * 24;
 
-      List<DateTimeBean> dataSetOriginal = singletonList(new DateTimeBean(
-          new Date(oneDay * 365),
-          new Timestamp(oneDay + oneHour),
-          LocalDate.of(2000, 1, 1),
-          Instant.EPOCH));
+      Instant epoch = Instant.EPOCH;
+      List<DateTimeBean> dataSetOriginal =
+          singletonList(
+              new DateTimeBean(
+                  new Date(oneDay * 365),
+                  new Timestamp(oneDay + oneHour),
+                  LocalDate.of(2000, 1, 1),
+                  epoch,
+                  LocalDateTime.ofInstant(epoch, UTC)));
 
       // when
-      SparkSession spark = getOrCreateSparkSession();
+      SparkSession spark =
+          getOrCreateSparkSession(
+              getSparkConf().set("spark.sql.datetime.java8API.enabled", java8DateTimeAPI));
       Encoder<DateTimeBean> encoder = Encoders.bean(DateTimeBean.class);
 
       Dataset<DateTimeBean> dataset = spark.createDataset(dataSetOriginal, encoder);
       dataset.write().format("mongodb").mode("Overwrite").save();
 
       // Then
-      List<DateTimeBean> dataSetMongo = spark
-          .read()
-          .format("mongodb")
-          .schema(encoder.schema())
-          .load()
-          .as(encoder)
-          .collectAsList();
+      List<DateTimeBean> dataSetMongo =
+          spark
+              .read()
+              .format("mongodb")
+              .schema(encoder.schema())
+              .load()
+              .as(encoder)
+              .collectAsList();
       assertIterableEquals(dataSetOriginal, dataSetMongo);
     } finally {
       TimeZone.setDefault(original);

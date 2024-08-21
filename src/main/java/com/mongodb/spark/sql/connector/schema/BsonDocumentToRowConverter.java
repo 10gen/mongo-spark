@@ -44,6 +44,7 @@ import java.util.stream.Collectors;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericRowWithSchema;
+import org.apache.spark.sql.internal.SqlApiConf;
 import org.apache.spark.sql.types.ArrayType;
 import org.apache.spark.sql.types.BinaryType;
 import org.apache.spark.sql.types.BooleanType;
@@ -62,6 +63,7 @@ import org.apache.spark.sql.types.ShortType;
 import org.apache.spark.sql.types.StringType;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.types.TimestampNTZType;
 import org.apache.spark.sql.types.TimestampType;
 import org.bson.BsonArray;
 import org.bson.BsonBinaryWriter;
@@ -76,6 +78,8 @@ import org.bson.io.BasicOutputBuffer;
 import org.bson.types.Decimal128;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.VisibleForTesting;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The helper for conversion of BsonDocuments to GenericRowWithSchema instances.
@@ -89,6 +93,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 @NotNull
 public final class BsonDocumentToRowConverter implements Serializable {
   private static final long serialVersionUID = 1L;
+  private static final Logger log = LoggerFactory.getLogger(BsonDocumentToRowConverter.class);
   private final Function<Row, InternalRow> rowToInternalRowFunction;
   private final StructType schema;
   private final boolean outputExtendedJson;
@@ -96,6 +101,7 @@ public final class BsonDocumentToRowConverter implements Serializable {
   private final boolean dropMalformed;
   private final String columnNameOfCorruptRecord;
   private final boolean schemaContainsCorruptRecordColumn;
+  private final boolean dataTimeJava8APIEnabled;
 
   private boolean corruptedRecord;
 
@@ -114,6 +120,7 @@ public final class BsonDocumentToRowConverter implements Serializable {
     this.columnNameOfCorruptRecord = readConfig.getColumnNameOfCorruptRecord();
     this.schemaContainsCorruptRecordColumn = !columnNameOfCorruptRecord.isEmpty()
         && Arrays.asList(schema.fieldNames()).contains(columnNameOfCorruptRecord);
+    this.dataTimeJava8APIEnabled = SqlApiConf.get().datetimeJava8ApiEnabled();
   }
 
   /** @return the schema for the converter */
@@ -165,6 +172,7 @@ public final class BsonDocumentToRowConverter implements Serializable {
   @VisibleForTesting
   Object convertBsonValue(
       final String fieldName, final DataType dataType, final BsonValue bsonValue) {
+    log.info("converting bson to value: {} {} {}", fieldName, dataType, bsonValue);
     try {
       if (bsonValue.isNull()) {
         return null;
@@ -179,9 +187,22 @@ public final class BsonDocumentToRowConverter implements Serializable {
       } else if (dataType instanceof BooleanType) {
         return convertToBoolean(fieldName, dataType, bsonValue);
       } else if (dataType instanceof DateType) {
-        return convertToDate(fieldName, dataType, bsonValue);
+        Date date = convertToDate(fieldName, dataType, bsonValue);
+        if (dataTimeJava8APIEnabled) {
+          return date.toLocalDate();
+        } else {
+          return date;
+        }
       } else if (dataType instanceof TimestampType) {
-        return convertToTimestamp(fieldName, dataType, bsonValue);
+        Timestamp timestamp = convertToTimestamp(fieldName, dataType, bsonValue);
+        if (dataTimeJava8APIEnabled) {
+          return timestamp.toInstant();
+        } else {
+          return timestamp;
+        }
+      } else if (dataType instanceof TimestampNTZType) {
+        Timestamp timestamp = convertToTimestamp(fieldName, dataType, bsonValue);
+        return timestamp.toLocalDateTime();
       } else if (dataType instanceof FloatType) {
         return convertToFloat(fieldName, dataType, bsonValue);
       } else if (dataType instanceof IntegerType) {
