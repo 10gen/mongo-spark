@@ -28,6 +28,7 @@ import com.mongodb.spark.sql.connector.config.MongoConfig;
 import com.mongodb.spark.sql.connector.config.ReadConfig;
 import com.mongodb.spark.sql.connector.config.WriteConfig;
 import com.mongodb.spark.sql.connector.exceptions.MongoSparkException;
+import com.mongodb.spark.sql.connector.schema.InferSchema;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -239,7 +240,7 @@ public class MongoCatalog implements TableCatalog, SupportsNamespaces, SupportsN
     properties.put(
         MongoConfig.READ_PREFIX + MongoConfig.DATABASE_NAME_CONFIG, identifier.namespace()[0]);
     properties.put(MongoConfig.READ_PREFIX + MongoConfig.COLLECTION_NAME_CONFIG, identifier.name());
-    return new MongoTable(MongoConfig.readConfig(properties));
+    return new MongoTable(InferSchema.inferSchema(new CaseInsensitiveStringMap(properties)), MongoConfig.readConfig(properties));
   }
 
   /**

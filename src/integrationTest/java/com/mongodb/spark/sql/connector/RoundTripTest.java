@@ -17,8 +17,10 @@
 
 package com.mongodb.spark.sql.connector;
 
+import static com.mongodb.spark.sql.connector.mongodb.MongoSparkConnectorHelper.CATALOG;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 
 import com.mongodb.spark.sql.connector.beans.BoxedBean;
@@ -39,6 +41,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.Test;
 
@@ -161,5 +164,34 @@ public class RoundTripTest extends MongoSparkConnectorTestCase {
         .as(encoder)
         .collectAsList();
     assertIterableEquals(dataSetOriginal, dataSetMongo);
+  }
+
+  @Test
+  void testCatalogAccessAndDelete() {
+    List<BoxedBean> dataSetOriginal =
+        asList(
+            new BoxedBean((byte) 1, (short) 2, 0, 4L, 5.0f, 6.0, true),
+            new BoxedBean((byte) 1, (short) 2, 1, 4L, 5.0f, 6.0, true),
+            new BoxedBean((byte) 1, (short) 2, 2, 4L, 5.0f, 6.0, true),
+            new BoxedBean((byte) 1, (short) 2, 3, 4L, 5.0f, 6.0, false),
+            new BoxedBean((byte) 1, (short) 2, 4, 4L, 5.0f, 6.0, false),
+            new BoxedBean((byte) 1, (short) 2, 5, 4L, 5.0f, 6.0, false));
+
+    SparkSession spark = getOrCreateSparkSession();
+    Encoder<BoxedBean> encoder = Encoders.bean(BoxedBean.class);
+    spark
+        .createDataset(dataSetOriginal, encoder)
+        .write()
+        .format("mongodb")
+        .mode("Overwrite")
+        .save();
+
+    String tableName = CATALOG + "." + HELPER.getDatabaseName() + "." + HELPER.getCollectionName();
+    List<Row> rows = spark.sql("select * from " + tableName).collectAsList();
+    assertEquals(6, rows.size());
+
+    spark.sql("delete from " + tableName + " where not booleanField and intField > 3");
+    rows = spark.sql("select * from " + tableName).collectAsList();
+    assertEquals(4, rows.size());
   }
 }

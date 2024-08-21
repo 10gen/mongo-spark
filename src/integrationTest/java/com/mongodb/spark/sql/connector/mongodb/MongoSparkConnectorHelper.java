@@ -28,6 +28,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
 import com.mongodb.connection.ClusterType;
+import com.mongodb.spark.sql.connector.MongoCatalog;
 import com.mongodb.spark.sql.connector.config.MongoConfig;
 import java.io.File;
 import java.io.IOException;
@@ -62,6 +63,7 @@ public class MongoSparkConnectorHelper
       "{_id: '%s', pk: '%s', dups: '%s', i: %d, s: '%s'}";
   private static final String COMPLEX_SAMPLE_DATA_TEMPLATE =
       "{_id: '%s', nested: {pk: '%s', dups: '%s', i: %d}, s: '%s'}";
+  public static final String CATALOG = "mongo_catalog";
 
   private static final Logger LOGGER = LoggerFactory.getLogger(MongoSparkConnectorHelper.class);
 
@@ -146,6 +148,7 @@ public class MongoSparkConnectorHelper
         .set("spark.sql.streaming.checkpointLocation", getTempDirectory())
         .set("spark.sql.streaming.forceDeleteTempCheckpointLocation", "true")
         .set("spark.app.id", "MongoSparkConnector")
+        .set("spark.sql.catalog." + CATALOG, MongoCatalog.class.getCanonicalName())
         .set(
             MongoConfig.PREFIX + MongoConfig.CONNECTION_STRING_CONFIG,
             getConnectionString().getConnectionString())
