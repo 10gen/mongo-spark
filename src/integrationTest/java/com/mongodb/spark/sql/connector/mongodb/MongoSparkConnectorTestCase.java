@@ -241,6 +241,10 @@ public class MongoSparkConnectorTestCase {
     return HELPER.getOrCreateSparkContext(sparkConfig);
   }
 
+  public SparkContext createSparkContext(final SparkConf sparkConfig) {
+    return HELPER.getOrCreateSparkContext(sparkConfig, true);
+  }
+
   public void retryAssertion(final Runnable assertion) {
     retryAssertion(assertion, () -> {});
   }

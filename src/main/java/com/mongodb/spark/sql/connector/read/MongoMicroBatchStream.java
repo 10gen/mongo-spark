@@ -23,7 +23,6 @@ import com.mongodb.spark.sql.connector.config.ReadConfig;
 import com.mongodb.spark.sql.connector.schema.BsonDocumentToRowConverter;
 import com.mongodb.spark.sql.connector.schema.InferSchema;
 import java.time.Instant;
-import org.apache.spark.SparkContext;
 import org.apache.spark.sql.connector.read.InputPartition;
 import org.apache.spark.sql.connector.read.PartitionReaderFactory;
 import org.apache.spark.sql.connector.read.streaming.MicroBatchStream;
@@ -68,10 +67,8 @@ final class MongoMicroBatchStream implements MicroBatchStream {
         () ->
             "Mongo micro batch streams require a schema to be explicitly defined, unless using publish full document only.");
     this.schema = schema;
-    this.mongoOffsetStore = new MongoOffsetStore(
-        SparkContext.getOrCreate().hadoopConfiguration(),
-        checkpointLocation,
-        MongoOffset.getInitialOffset(readConfig));
+    this.mongoOffsetStore =
+        new MongoOffsetStore(checkpointLocation, MongoOffset.getInitialOffset(readConfig));
     this.readConfig = readConfig;
     this.bsonDocumentToRowConverter = new BsonDocumentToRowConverter(schema, readConfig);
   }

@@ -19,11 +19,11 @@ package com.mongodb.spark.sql.connector.read;
 import static java.lang.String.format;
 
 import com.mongodb.spark.sql.connector.exceptions.ConfigException;
+import com.mongodb.spark.sql.connector.utils.SparkHadoopUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -41,14 +41,13 @@ final class MongoOffsetStore {
   /**
    * Instantiates a new Mongo offset store.
    *
-   * @param conf the conf
    * @param checkpointLocation the checkpoint location for offsets
    * @param offset the offset
    */
-  MongoOffsetStore(
-      final Configuration conf, final String checkpointLocation, final MongoOffset offset) {
+  MongoOffsetStore(final String checkpointLocation, final MongoOffset offset) {
     try {
-      this.fs = FileSystem.get(URI.create(checkpointLocation), conf);
+      this.fs = FileSystem.get(
+          URI.create(checkpointLocation), SparkHadoopUtils.createHadoopConfiguration());
     } catch (IOException e) {
       throw new ConfigException(
           format("Unable to initialize the MongoOffsetStore: %s", checkpointLocation), e);
