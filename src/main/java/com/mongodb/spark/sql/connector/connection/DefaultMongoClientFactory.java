@@ -58,12 +58,12 @@ public final class DefaultMongoClientFactory implements MongoClientFactory {
       return false;
     }
     final DefaultMongoClientFactory that = (DefaultMongoClientFactory) o;
-    return config.equals(that.config);
+    return config.getConnectionString().equals(that.config.getConnectionString());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(config);
+    return Objects.hash(config.getConnectionString());
   }
 
   private static MongoDriverInformation generateMongoDriverInformation(final String configType) {
