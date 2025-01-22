@@ -31,7 +31,6 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.spark.sql.connector.config.MongoConfig;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -127,21 +126,6 @@ class MongoClientCacheTest {
   }
 
   @Test
-  @Disabled("fixed in https://github.com/mongodb/mongo-spark/pull/112")
-  void factoriesWithSameSimpleConfigCreateSameClientsThroughCache() {
-    MongoConfig config = MongoConfig.createConfig(CONFIG_MAP);
-    DefaultMongoClientFactory factory1 = new DefaultMongoClientFactory(config);
-    DefaultMongoClientFactory factory2 = new DefaultMongoClientFactory(config);
-    MongoClientCache mongoClientCache = new MongoClientCache(0, 0, 100);
-
-    MongoClient client1 = mongoClientCache.acquire(factory1);
-    MongoClient client2 = mongoClientCache.acquire(factory2);
-
-    assertSame(client1, client2);
-  }
-
-  @Test
-  @Disabled("fixed in https://github.com/mongodb/mongo-spark/pull/112")
   void factoriesWithEqualSimpleConfigsCreateSameClientsThroughCache() {
     MongoConfig config1 = MongoConfig.createConfig(CONFIG_MAP);
     MongoConfig config2 = MongoConfig.createConfig(CONFIG_MAP);
