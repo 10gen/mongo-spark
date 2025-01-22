@@ -31,19 +31,35 @@ public final class LazyMongoClientCache {
 
   private static final MongoClientCache CLIENT_CACHE;
 
-  private static final String SYSTEM_MONGO_CACHE_KEEP_ALIVE_MS_PROPERTY =
+  static final String LEGACY_SYSTEM_MONGO_CACHE_KEEP_ALIVE_MS_PROPERTY =
       "spark.mongodb.keep_alive_ms";
 
+  static final String SYSTEM_MONGO_CACHE_KEEP_ALIVE_MS_PROPERTY = "mongodb.keep_alive_ms";
+
   static {
-    int keepAliveMS = 5000;
+    int keepAliveMS = computeKeepAlive(5000);
+
+    CLIENT_CACHE = new MongoClientCache(keepAliveMS);
+  }
+
+  static int computeKeepAlive(int defaultValue) {
+    int keepAliveMS = defaultValue;
     try {
-      keepAliveMS =
-          Integer.parseInt(System.getProperty(SYSTEM_MONGO_CACHE_KEEP_ALIVE_MS_PROPERTY, "5000"));
+      String legacyKeepAliveMS =
+          System.getProperty(LEGACY_SYSTEM_MONGO_CACHE_KEEP_ALIVE_MS_PROPERTY);
+      if (legacyKeepAliveMS != null) {
+        keepAliveMS = Integer.parseInt(legacyKeepAliveMS);
+      }
     } catch (NumberFormatException e) {
       // ignore and use default
     }
-
-    CLIENT_CACHE = new MongoClientCache(keepAliveMS);
+    try {
+      keepAliveMS = Integer.parseInt(System.getProperty(
+          SYSTEM_MONGO_CACHE_KEEP_ALIVE_MS_PROPERTY, Integer.toString(defaultValue)));
+    } catch (NumberFormatException e) {
+      // ignore and use default
+    }
+    return keepAliveMS;
   }
 
   /**
