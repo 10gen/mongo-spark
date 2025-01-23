@@ -19,7 +19,6 @@ package com.mongodb.spark.sql.connector.write;
 
 import static java.lang.String.format;
 
-import com.mongodb.client.MongoCollection;
 import com.mongodb.spark.sql.connector.config.WriteConfig;
 import com.mongodb.spark.sql.connector.exceptions.DataException;
 import java.util.Arrays;
@@ -62,7 +61,8 @@ final class MongoBatchWrite implements BatchWrite {
   @Override
   public DataWriterFactory createBatchWriterFactory(final PhysicalWriteInfo physicalWriteInfo) {
     if (truncate) {
-      writeConfig.doWithCollection(MongoCollection::drop);
+        TruncateMode mode = TruncateMode.valueOf(writeConfig.getOrDefault("truncate_mode", "DROP"));
+        mode.truncate(writeConfig);
     }
     return new MongoDataWriterFactory(info.schema(), writeConfig);
   }
@@ -88,8 +88,10 @@ final class MongoBatchWrite implements BatchWrite {
   @Override
   public void abort(final WriterCommitMessage[] messages) {
     long tasksCompleted = Arrays.stream(messages).filter(Objects::nonNull).count();
-    throw new DataException(format(
-        "Write aborted for: %s. %s/%s tasks completed.",
-        info.queryId(), tasksCompleted, messages.length));
+    throw new DataException(
+        format(
+            "Write aborted for: %s. %s/%s tasks completed.",
+            info.queryId(), tasksCompleted, messages.length));
   }
+
 }
